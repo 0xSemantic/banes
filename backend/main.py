@@ -138,6 +138,7 @@ def get_loading_html():
 
 
 async def seed_admin():
+    """Create default admin user if not exists"""
     from .models.user import User
     from .services.auth_service import get_password_hash
     from sqlalchemy import select
@@ -160,4 +161,4 @@ async def seed_admin():
             db.add(admin_user)
             await db.commit()
             print(f"✅ Admin seeded: {settings.ADMIN_EMAIL} / {settings.ADMIN_PASSWORD}")
-        break
+        break  # exit the async for loop after one iteration
