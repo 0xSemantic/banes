@@ -11,6 +11,9 @@ import { Modal, FormGroup, LoadingButton, PageHeader, EmptyState, Alert, StatusB
 import toast from 'react-hot-toast'
 import clsx from 'clsx'
 
+// New daily limit (10 million)
+const DISPLAY_DAILY_LIMIT = 10000000
+
 export default function AccountsPage() {
   const { accounts, fetchAccounts, isLoading } = useAccountStore()
   const { user } = useAuthStore()
@@ -154,7 +157,9 @@ export default function AccountsPage() {
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div>
                     <div className="text-bank-muted">Daily Limit</div>
-                    <div className="font-semibold text-bank-light">{formatCurrency(acc.daily_limit, acc.currency)}</div>
+                    <div className="font-semibold text-bank-light">
+                      {formatCurrency(DISPLAY_DAILY_LIMIT, acc.currency)}
+                    </div>
                   </div>
                   <div>
                     <div className="text-bank-muted">Opened</div>

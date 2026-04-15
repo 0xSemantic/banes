@@ -5,7 +5,7 @@ import uuid
 from datetime import datetime
 from sqlalchemy import String, DateTime, Float, ForeignKey, Text, Boolean, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from ..database import Base
+from ..base import Base
 
 
 class Loan(Base):

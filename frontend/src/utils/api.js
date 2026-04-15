@@ -6,8 +6,11 @@ import axios from 'axios'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '../store'   // <-- import the store
 
+// ✅ Load API base URL from Vite environment variables
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: BASE_URL,
   timeout: 30000,
   headers: { 'Content-Type': 'application/json' }
 })

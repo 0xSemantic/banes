@@ -26,6 +26,7 @@ import CardsPage from './pages/CardsPage'
 import NotificationsPage from './pages/NotificationsPage'
 import ProfilePage from './pages/ProfilePage'
 import CurrencyPage from './pages/CurrencyPage'
+import SupportPage from './pages/SupportPage';
 
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard'
@@ -35,6 +36,7 @@ import AdminUserDetail from './pages/admin/AdminUserDetail'
 import AdminTransactions from './pages/admin/AdminTransactions'
 import AdminSavingsTiers from './pages/admin/AdminSavingsTiers'
 import AdminSettings from './pages/admin/AdminSettings'
+import AdminSupportPage from './pages/admin/AdminSupportPage';
 
 // ── AUTH GUARD ─────────────────────────────────────────────────────────────
 function RequireAuth({ children }) {
@@ -120,6 +122,7 @@ export default function App() {
           <Route path="notifications" element={<NotificationsPage />} />
           <Route path="profile"       element={<ProfilePage />} />
           <Route path="currency"      element={<CurrencyPage />} />
+          <Route path="support" element={<SupportPage />} />
         </Route>
 
         {/* Admin routes */}
@@ -131,6 +134,7 @@ export default function App() {
           <Route path="transactions"      element={<AdminTransactions />} />
           <Route path="savings-tiers"     element={<AdminSavingsTiers />} />
           <Route path="settings"          element={<AdminSettings />} />
+          <Route path="support" element={<AdminSupportPage />} />
         </Route>
 
         {/* Fallback */}

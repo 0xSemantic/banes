@@ -5,7 +5,7 @@ import uuid
 from datetime import datetime
 from sqlalchemy import String, DateTime, Boolean, ForeignKey, Float
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from ..database import Base
+from ..base import Base
 
 
 class Card(Base):

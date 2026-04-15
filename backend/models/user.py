@@ -5,7 +5,7 @@ import uuid
 from datetime import datetime
 from sqlalchemy import String, Boolean, DateTime, Float, Text, ForeignKey, Integer, Enum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from ..database import Base
+from ..base import Base
 
 
 class User(Base):
@@ -33,3 +33,4 @@ class User(Base):
     notifications: Mapped[list["Notification"]] = relationship("Notification", back_populates="user")
     loans: Mapped[list["Loan"]] = relationship("Loan", back_populates="user")
     cards: Mapped[list["Card"]] = relationship("Card", back_populates="user")
+    

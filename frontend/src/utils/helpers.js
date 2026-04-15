@@ -3,10 +3,13 @@
  */
 import { format, formatDistanceToNow, parseISO } from 'date-fns'
 
+// ✅ Load default currency from environment
+const DEFAULT_CURRENCY = import.meta.env.VITE_DEFAULT_CURRENCY || 'USD'
+
 // ── CURRENCY FORMATTING ────────────────────────────────────────────────────
 const CURRENCY_SYMBOLS = { USD: '$', GBP: '£', EUR: '€', NGN: '₦', JPY: '¥', CAD: 'CA$' }
 
-export function formatCurrency(amount, currency = 'USD', compact = false) {
+export function formatCurrency(amount, currency = DEFAULT_CURRENCY, compact = false) {
   const symbol = CURRENCY_SYMBOLS[currency] || currency
   if (amount == null || isNaN(amount)) return `${symbol}0.00`
 

@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react'
 import {
   LayoutDashboard, Bell, Users, ArrowLeftRight,
   PiggyBank, Settings, LogOut, Menu, X,
-  ShieldCheck, Wifi, WifiOff, ChevronRight
+  ShieldCheck, Wifi, WifiOff, ChevronRight, MessageCircle
 } from 'lucide-react'
 import { useAuthStore, useWebSocketStore } from '../../store'
 import api from '../../utils/api'
@@ -18,8 +18,9 @@ const NAV_ITEMS = [
   { to: '/admin/users',        label: 'Users',         icon: Users },
   { to: '/admin/transactions', label: 'Transactions',  icon: ArrowLeftRight },
   { to: '/admin/savings-tiers',label: 'Savings Tiers', icon: PiggyBank },
+  { to: '/admin/support',      label: 'Support Chat',  icon: MessageCircle }, // <-- ADD THIS
   { to: '/admin/settings',     label: 'Settings',      icon: Settings },
-]
+];
 
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)

@@ -12,7 +12,7 @@ import {
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts'
-import { useAuthStore, useAccountStore } from '../store'
+import { useAuthStore, useAccountStore, useWebSocketStore } from '../store' // added WebSocket store
 import api from '../utils/api'
 import { formatCurrency, formatDate, getTxnMeta, getStatusBadge, timeAgo } from '../utils/helpers'
 import { CardSkeleton, EmptyState, StatusBadge } from '../components/ui'
@@ -20,17 +20,37 @@ import clsx from 'clsx'
 import toast from 'react-hot-toast'
 
 export default function DashboardPage() {
-  const { user } = useAuthStore()
+  const { user, refreshUser } = useAuthStore()  // <-- added refreshUser
   const { accounts, selectedAccount, fetchAccounts, selectAccount, isLoading } = useAccountStore()
+  const { lastMessage } = useWebSocketStore()    // <-- listen to WS messages
   const [transactions, setTransactions] = useState([])
   const [chartData, setChartData] = useState([])
   const [balanceVisible, setBalanceVisible] = useState(true)
   const [loadingTxn, setLoadingTxn] = useState(true)
   const navigate = useNavigate()
 
+  // Load transactions when selected account changes
   useEffect(() => {
     loadData()
   }, [selectedAccount])
+
+  // Auto‑refresh user when KYC is updated via WebSocket or window focus
+  useEffect(() => {
+    const handleFocus = () => {
+      if (user?.kyc_status !== 'verified') {
+        refreshUser()
+      }
+    }
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+  }, [user?.kyc_status, refreshUser])
+
+  // React to WebSocket messages that might contain KYC update
+  useEffect(() => {
+    if (lastMessage?.type === 'kyc_verified' || lastMessage?.data?.notification_type === 'kyc_verified') {
+      refreshUser()
+    }
+  }, [lastMessage, refreshUser])
 
   const loadData = async () => {
     if (selectedAccount) {
@@ -132,7 +152,7 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* KYC alert */}
+          {/* KYC alert - now updates automatically */}
           {user?.kyc_status !== 'verified' && (
             <div className="mt-4 flex items-center gap-2 px-3 py-2 rounded-xl text-xs"
               style={{ background: 'rgba(245,158,11,0.2)', border: '1px solid rgba(245,158,11,0.3)' }}>

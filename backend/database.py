@@ -1,42 +1,65 @@
-"""
-Credex Bank - Database Configuration
-SQLite with async support via aiosqlite
-"""
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
-from sqlalchemy.orm import DeclarativeBase
+import asyncio
+from contextlib import asynccontextmanager
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, Session
+from .base import Base
 from .config import settings
 
-engine = create_async_engine(
-    settings.DATABASE_URL,
-    echo=False,
-    connect_args={"check_same_thread": False}
-)
+# 1. Create the sync engine (works for both Turso and local SQLite)
+if settings.DATABASE_TYPE == "turso":
+    # Turso requires the libsql driver – import it to register the dialect
+    import libsql
+    engine = create_engine(
+        settings.DATABASE_URL,
+        echo=False,
+        connect_args={"auth_token": settings.TURSO_AUTH_TOKEN}
+    )
+else:
+    engine = create_engine(
+        settings.DATABASE_URL,
+        echo=False,
+        connect_args={"check_same_thread": False}
+    )
 
-AsyncSessionLocal = async_sessionmaker(
-    engine,
-    class_=AsyncSession,
-    expire_on_commit=False
-)
+SyncSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+# 2. Async wrapper that runs all sync calls in a thread pool
+class AsyncSessionProxy:
+    """Proxies a sync SQLAlchemy session, making all methods awaitable."""
+    def __init__(self, session: Session):
+        self._session = session
 
-class Base(DeclarativeBase):
-    pass
+    async def __aenter__(self):
+        return self
 
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.close()
 
+    def __getattr__(self, name):
+        attr = getattr(self._session, name)
+        if callable(attr):
+            async def async_wrapper(*args, **kwargs):
+                return await asyncio.to_thread(attr, *args, **kwargs)
+            return async_wrapper
+        return attr
+
+@asynccontextmanager
 async def get_db():
-    async with AsyncSessionLocal() as session:
-        try:
-            yield session
-            await session.commit()
-        except Exception:
-            await session.rollback()
-            raise
-        finally:
-            await session.close()
-
+    """Async context manager that yields an async‑capable database session."""
+    session = await asyncio.to_thread(SyncSessionLocal)
+    proxy = AsyncSessionProxy(session)
+    try:
+        yield proxy
+        await asyncio.to_thread(session.commit)
+    except Exception:
+        await asyncio.to_thread(session.rollback)
+        raise
+    finally:
+        await asyncio.to_thread(session.close)
 
 async def create_tables():
-    from .models import user, account, transaction, savings, loan, notification, card, settings_model
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    print("✅ Database tables created")
+    """Create all tables (runs sync table creation in a thread)."""
+    def _create():
+        Base.metadata.create_all(bind=engine)
+        print("✅ Database tables created")
+    await asyncio.to_thread(_create)

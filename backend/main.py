@@ -11,7 +11,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from typing import Optional
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException, status
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException, status, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, HTMLResponse
@@ -19,7 +19,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi import Request
 
 from .database import engine, create_tables, get_db
-from .routers import auth, users, accounts, transactions, savings, loans, admin, notifications, cards, currency
+from .routers import auth, users, accounts, transactions, savings, loans, admin, notifications, cards, currency, chat
 from .services.websocket_manager import ws_manager
 from .services.interest_scheduler import start_interest_scheduler
 from .config import settings
@@ -67,10 +67,12 @@ app.include_router(admin.router, prefix="/api/admin", tags=["Admin"])
 app.include_router(notifications.router, prefix="/api/notifications", tags=["Notifications"])
 app.include_router(cards.router, prefix="/api/cards", tags=["Cards"])
 app.include_router(currency.router, prefix="/api/currency", tags=["Currency"])
+app.include_router(chat.router, prefix="/api/chat", tags=["Chat"])
 
 
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: str):
+    """WebSocket for real-time notifications (existing)"""
     await ws_manager.connect(websocket, client_id)
     try:
         while True:
@@ -80,6 +82,19 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                 await websocket.send_text(json.dumps({"type": "pong", "timestamp": datetime.utcnow().isoformat()}))
     except WebSocketDisconnect:
         ws_manager.disconnect(client_id)
+
+
+@app.websocket("/ws/chat/{session_id}")
+async def websocket_chat_endpoint(
+    websocket: WebSocket,
+    session_id: int,
+    token: str = Query(...)
+):
+    """WebSocket for live customer support chat"""
+    # We need a database session – use async generator
+    async for db in get_db():
+        await chat.websocket_chat_endpoint(websocket, session_id, token, db)
+        break  # Only one iteration needed
 
 
 @app.get("/api/health")
@@ -123,13 +138,11 @@ def get_loading_html():
 
 
 async def seed_admin():
-    """Create default admin user if not exists"""
-    from .database import AsyncSessionLocal
     from .models.user import User
     from .services.auth_service import get_password_hash
     from sqlalchemy import select
-    
-    async with AsyncSessionLocal() as db:
+
+    async for db in get_db():
         result = await db.execute(select(User).where(User.email == settings.ADMIN_EMAIL))
         admin = result.scalar_one_or_none()
         if not admin:
@@ -147,3 +160,4 @@ async def seed_admin():
             db.add(admin_user)
             await db.commit()
             print(f"✅ Admin seeded: {settings.ADMIN_EMAIL} / {settings.ADMIN_PASSWORD}")
+        break

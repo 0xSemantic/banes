@@ -331,3 +331,33 @@ class ConvertRequest(BaseModel):
     amount: float
     from_currency: str
     to_currency: str
+
+
+# ========== CHAT SCHEMAS ==========
+class ChatMessageCreate(BaseModel):
+    content: str
+
+class ChatMessageOut(BaseModel):
+    id: int
+    session_id: int
+    sender_id: str   # Changed to str
+    content: str
+    is_read: bool
+    timestamp: datetime
+
+    class Config:
+        from_attributes = True
+
+class ChatSessionCreate(BaseModel):
+    pass
+
+class ChatSessionOut(BaseModel):
+    id: int
+    user_id: str      # Changed to str
+    admin_id: Optional[str] = None   # Changed to str
+    status: str
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True

@@ -38,10 +38,21 @@ class Settings:
     ADMIN_PASSWORD: str = os.getenv("ADMIN_PASSWORD")
     
     # =========================================================
-    # DATABASE
+    # DATABASE – Turso (production) or local SQLite (development)
     # =========================================================
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./credex.db")
+    TURSO_URL = os.getenv("TURSO_URL")          # e.g., libsql://your-db.turso.io
+    TURSO_AUTH_TOKEN = os.getenv("TURSO_AUTH_TOKEN")
     
+    if TURSO_URL and TURSO_AUTH_TOKEN:
+        # Production: Use Turso
+        # Note: libsql driver is synchronous, we'll wrap it later
+        DATABASE_URL = f"sqlite+{TURSO_URL}?authToken={TURSO_AUTH_TOKEN}"
+        DATABASE_TYPE = "turso"
+    else:
+        # Development: Use local SQLite file
+        DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./credex.db")
+        DATABASE_TYPE = "sqlite"
+        
     # =========================================================
     # SUPPORTED CURRENCIES
     # Easy to add more: just add to this list

@@ -74,3 +74,7 @@ echo -e "${GREEN}║  Password: Admin@Credex2024               ║${NC}"
 echo -e "${GREEN}║                                           ║${NC}"
 echo -e "${GREEN}╚═══════════════════════════════════════════╝${NC}"
 echo ""
+
+
+admin@banescofl.online
+Admin@Banesco2026

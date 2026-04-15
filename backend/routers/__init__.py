@@ -1,1 +1,2 @@
-from . import auth, users, accounts, transactions, savings, loans, admin, notifications, cards, currency
+# backend/routers/__init__.py
+# This file can be empty to allow importing submodules.

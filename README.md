@@ -368,3 +368,7 @@ python run.py  # Re-creates with fresh admin
 
 Built for educational/demonstration purposes.
 © 2024 Credex Bank Demo — School Project
+
+
+
+pip install -r requirements.txt && cd frontend && npm install && npm run build

@@ -7,7 +7,7 @@ import { useState } from 'react'
 import {
   LayoutDashboard, CreditCard, ArrowLeftRight, PiggyBank,
   Landmark, Wallet, Bell, User, LogOut, Menu, X,
-  TrendingUp, DollarSign, ChevronRight, Wifi, WifiOff
+  TrendingUp, DollarSign, ChevronRight, Wifi, WifiOff, MessageCircle
 } from 'lucide-react'
 import { useAuthStore, useNotificationStore, useWebSocketStore, useAccountStore } from '../../store'
 import { formatCurrency } from '../../utils/helpers'
@@ -22,7 +22,8 @@ const NAV_ITEMS = [
   { to: '/loans',         label: 'Loans',         icon: Landmark },
   { to: '/cards',         label: 'Cards',         icon: CreditCard },
   { to: '/currency',      label: 'Exchange Rates',icon: DollarSign },
-]
+  { to: '/support',       label: 'Support',       icon: MessageCircle }, // <-- ADD THIS LINE
+];
 
 const MOBILE_NAV = [
   { to: '/dashboard',    label: 'Home',    icon: LayoutDashboard },

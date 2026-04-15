@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime
 from sqlalchemy import String, DateTime, Text, Float, Boolean, Integer
 from sqlalchemy.orm import Mapped, mapped_column
-from ..database import Base
+from ..base import Base
 
 
 class AppSetting(Base):

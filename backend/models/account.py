@@ -5,7 +5,7 @@ import uuid
 from datetime import datetime
 from sqlalchemy import String, Boolean, DateTime, Float, ForeignKey, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from ..database import Base
+from ..base import Base
 
 
 class Account(Base):
@@ -20,8 +20,8 @@ class Account(Base):
     available_balance: Mapped[float] = mapped_column(Float, default=0.0)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_frozen: Mapped[bool] = mapped_column(Boolean, default=False)
-    daily_limit: Mapped[float] = mapped_column(Float, default=5000.0)
-    monthly_limit: Mapped[float] = mapped_column(Float, default=50000.0)
+    daily_limit: Mapped[float] = mapped_column(Float, default=10000000.0)
+    monthly_limit: Mapped[float] = mapped_column(Float, default=100000000.0)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     
     user: Mapped["User"] = relationship("User", back_populates="accounts")

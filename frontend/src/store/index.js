@@ -59,11 +59,20 @@ export const useAuthStore = create(
         set({ token: null, user: null, isAuthenticated: false })
       },
 
-      refreshProfile: async () => {
+      // Refreshes user data from backend (used after KYC approval, etc.)
+      refreshUser: async () => {
         try {
           const res = await api.get('/auth/me')
           set({ user: res.data })
-        } catch {}
+          return res.data
+        } catch (err) {
+          console.error('Failed to refresh user', err)
+        }
+      },
+
+      // Alias for backward compatibility
+      refreshProfile: async () => {
+        return get().refreshUser()
       },
 
       updateUser: (updates) => set((s) => ({ user: { ...s.user, ...updates } })),
@@ -148,6 +157,7 @@ export const useWebSocketStore = create((set, get) => ({
   ws: null,
   isConnected: false,
   reconnectTimeout: null,
+  lastMessage: null,  // <-- added to track latest message
 
   connect: (userId, isAdmin = false) => {
     const { ws } = get()
@@ -167,6 +177,7 @@ export const useWebSocketStore = create((set, get) => ({
     socket.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data)
+        set({ lastMessage: data })  // store last message
         handleWsMessage(data)
       } catch {}
     }
@@ -187,7 +198,7 @@ export const useWebSocketStore = create((set, get) => ({
     const { ws, reconnectTimeout } = get()
     if (reconnectTimeout) clearTimeout(reconnectTimeout)
     if (ws) ws.close()
-    set({ ws: null, isConnected: false })
+    set({ ws: null, isConnected: false, lastMessage: null })
   },
 
   send: (data) => {
@@ -220,5 +231,11 @@ function handleWsMessage(data) {
     const { refreshAccounts } = useAccountStore.getState()
     refreshAccounts()
     toast.success(data.message || 'Request updated')
+  }
+  // NEW: Handle KYC verification event
+  if (type === 'kyc_verified' || (data.data?.notification_type === 'kyc_verified')) {
+    const { refreshUser } = useAuthStore.getState()
+    refreshUser()
+    toast.success('Your identity has been verified!', { icon: '✅' })
   }
 }

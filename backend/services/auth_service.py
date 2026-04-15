@@ -32,17 +32,10 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 
 def get_password_hash(password: str) -> str:
-    """
-    Hash password using Argon2id.
-    Supports very long passwords safely.
-    """
     return ph.hash(password)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """
-    Verify password using Argon2id.
-    """
     try:
         return ph.verify(hashed_password, plain_password)
     except VerifyMismatchError:
@@ -50,70 +43,50 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
-    """
-    Generate JWT access token.
-    """
     to_encode = data.copy()
-
     expire = datetime.utcnow() + (
         expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     )
-
     to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
-    return jwt.encode(
-        to_encode,
-        settings.SECRET_KEY,
-        algorithm=settings.ALGORITHM
-    )
+
+def decode_token(token: str) -> Optional[dict]:
+    """Decode JWT token without raising exception."""
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        return payload
+    except JWTError:
+        return None
 
 
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: AsyncSession = Depends(get_db)
 ) -> User:
-
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-
     try:
-        payload = jwt.decode(
-            token,
-            settings.SECRET_KEY,
-            algorithms=[settings.ALGORITHM]
-        )
-
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         user_id: str = payload.get("sub")
-
         if user_id is None:
             raise credentials_exception
-
     except JWTError:
         raise credentials_exception
 
-    result = await db.execute(
-        select(User).where(User.id == user_id)
-    )
-
+    result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
-
     if user is None or not user.is_active:
         raise credentials_exception
-
     return user
 
 
 async def get_current_admin(
     current_user: User = Depends(get_current_user)
 ) -> User:
-
     if not current_user.is_admin:
-        raise HTTPException(
-            status_code=403,
-            detail="Admin access required"
-        )
-
+        raise HTTPException(status_code=403, detail="Admin access required")
     return current_user
