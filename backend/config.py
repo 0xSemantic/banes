@@ -38,28 +38,10 @@ class Settings:
     ADMIN_PASSWORD: str = os.getenv("ADMIN_PASSWORD")
     
     # =========================================================
-    # DATABASE – Turso (production) or local SQLite (development)
+    # DATABASE – Neon PostgreSQL (production) or local SQLite (development)
     # =========================================================
-    TURSO_URL = os.getenv("TURSO_URL")          # e.g., libsql://your-db.turso.io
-    TURSO_AUTH_TOKEN = os.getenv("TURSO_AUTH_TOKEN")
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./credex.db")
     
-    if TURSO_URL and TURSO_AUTH_TOKEN:
-        # Production: Use Turso
-        # Convert libsql:// URL to https:// for the HTTP API
-        if TURSO_URL.startswith("libsql://"):
-            TURSO_HTTP_URL = TURSO_URL.replace("libsql://", "https://")
-        else:
-            TURSO_HTTP_URL = TURSO_URL
-        DATABASE_TYPE = "turso"
-        # Keep a fallback DATABASE_URL for compatibility (not used by turso-python)
-        DATABASE_URL = f"sqlite+{TURSO_URL}?authToken={TURSO_AUTH_TOKEN}"
-    else:
-        # Development: Use local SQLite file
-        DATABASE_TYPE = "sqlite"
-        DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./credex.db")
-        TURSO_HTTP_URL = None
-        TURSO_AUTH_TOKEN = None
-        
     # =========================================================
     # SUPPORTED CURRENCIES
     # Easy to add more: just add to this list
