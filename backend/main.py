@@ -18,7 +18,7 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi import Request
 
-from .database import engine, create_tables, get_db
+from .database import create_tables, get_db
 from .routers import auth, users, accounts, transactions, savings, loans, admin, notifications, cards, currency, chat
 from .services.websocket_manager import ws_manager
 from .services.interest_scheduler import start_interest_scheduler
@@ -144,21 +144,52 @@ async def seed_admin():
     from sqlalchemy import select
 
     async for db in get_db():
-        result = await db.execute(select(User).where(User.email == settings.ADMIN_EMAIL))
-        admin = result.scalar_one_or_none()
-        if not admin:
-            admin_user = User(
-                id=str(uuid.uuid4()),
-                email=settings.ADMIN_EMAIL,
-                full_name="Banesco Admin",
-                hashed_password=get_password_hash(settings.ADMIN_PASSWORD),
-                is_admin=True,
-                is_active=True,
-                is_verified=True,
-                phone="+1-800-Banesco",
-                created_at=datetime.utcnow()
+
+        # TURSO MODE (raw SQL)
+        if settings.DATABASE_TYPE == "turso":
+            result = await db.execute(f"""
+                SELECT * FROM users WHERE email = '{settings.ADMIN_EMAIL}' LIMIT 1
+            """)
+
+            rows = getattr(result, "rows", [])
+            if not rows:
+                await db.execute(f"""
+                    INSERT INTO users (
+                        id, email, full_name, hashed_password,
+                        is_admin, is_active, is_verified, phone, created_at
+                    ) VALUES (
+                        '{uuid.uuid4()}',
+                        '{settings.ADMIN_EMAIL}',
+                        'Banesco Admin',
+                        '{get_password_hash(settings.ADMIN_PASSWORD)}',
+                        1, 1, 1,
+                        '+1-800-Banesco',
+                        '{datetime.utcnow().isoformat()}'
+                    )
+                """)
+                print(f"✅ Admin seeded: {settings.ADMIN_EMAIL}")
+
+        # SQLITE MODE (ORM)
+        else:
+            result = await db.execute(
+                select(User).where(User.email == settings.ADMIN_EMAIL)
             )
-            db.add(admin_user)
-            await db.commit()
-            print(f"✅ Admin seeded: {settings.ADMIN_EMAIL} / {settings.ADMIN_PASSWORD}")
-        break  # exit the async for loop after one iteration
+            admin = result.scalar_one_or_none()
+
+            if not admin:
+                admin_user = User(
+                    id=str(uuid.uuid4()),
+                    email=settings.ADMIN_EMAIL,
+                    full_name="Banesco Admin",
+                    hashed_password=get_password_hash(settings.ADMIN_PASSWORD),
+                    is_admin=True,
+                    is_active=True,
+                    is_verified=True,
+                    phone="+1-800-Banesco",
+                    created_at=datetime.utcnow()
+                )
+                db.add(admin_user)
+                await db.commit()
+                print(f"✅ Admin seeded: {settings.ADMIN_EMAIL}")
+
+        break

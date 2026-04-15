@@ -1,5 +1,4 @@
 # backend/database.py
-import os
 from contextlib import asynccontextmanager
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from .base import Base
@@ -9,51 +8,38 @@ from .config import settings
 # TURSO (PRODUCTION)
 # =========================================================
 if settings.DATABASE_TYPE == "turso":
-    from turso_python import TursoClient  # ✅ FIXED IMPORT
+    from turso_python import TursoClient
 
-    # Create ONE global client (reuse across requests)
     turso_client = TursoClient(
         url=settings.TURSO_HTTP_URL,
         auth_token=settings.TURSO_AUTH_TOKEN
     )
 
     class TursoAsyncSession:
-        """A wrapper that mimics an async SQLAlchemy session."""
         def __init__(self, client):
             self.client = client
 
         async def execute(self, statement, *args, **kwargs):
-            """Execute SQL or SQLAlchemy statement safely."""
-            try:
-                if hasattr(statement, "compile"):
-                    compiled = statement.compile(
-                        compile_kwargs={"literal_binds": True}
-                    )
-                    sql = str(compiled)
-                else:
-                    sql = str(statement)
+            if hasattr(statement, "compile"):
+                compiled = statement.compile(
+                    compile_kwargs={"literal_binds": True}
+                )
+                sql = str(compiled)
+            else:
+                sql = str(statement)
 
-                result = await self.client.execute(sql)
-                return result
-
-            except Exception as e:
-                print(f"❌ Turso execute error: {e}")
-                raise
+            return await self.client.execute(sql)
 
         async def commit(self):
-            # Turso auto-commits
             pass
 
         async def rollback(self):
-            # No rollback support
             pass
 
         async def close(self):
-            # Do NOT close global client
             pass
 
         def add(self, obj):
-            # Not supported (use raw SQL)
             raise NotImplementedError("Use execute() for inserts")
 
     @asynccontextmanager
