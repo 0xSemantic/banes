@@ -1,73 +1,90 @@
 # backend/database.py
 import os
-import asyncio
 from contextlib import asynccontextmanager
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from .base import Base
 from .config import settings
 
+# =========================================================
+# TURSO (PRODUCTION)
+# =========================================================
 if settings.DATABASE_TYPE == "turso":
-    from turso import TursoClient
+    from turso_python import TursoClient  # ✅ FIXED IMPORT
+
+    # Create ONE global client (reuse across requests)
+    turso_client = TursoClient(
+        url=settings.TURSO_HTTP_URL,
+        auth_token=settings.TURSO_AUTH_TOKEN
+    )
 
     class TursoAsyncSession:
         """A wrapper that mimics an async SQLAlchemy session."""
         def __init__(self, client):
             self.client = client
-            self._transaction = None
 
         async def execute(self, statement, *args, **kwargs):
-            """Execute a raw SQL statement."""
-            # Convert SQLAlchemy Core statement to SQL string (simplified)
-            if hasattr(statement, 'compile'):
-                compiled = str(statement.compile(compile_kwargs={"literal_binds": True}))
-            else:
-                compiled = str(statement)
-            result = await self.client.execute(compiled)
-            return result
+            """Execute SQL or SQLAlchemy statement safely."""
+            try:
+                if hasattr(statement, "compile"):
+                    compiled = statement.compile(
+                        compile_kwargs={"literal_binds": True}
+                    )
+                    sql = str(compiled)
+                else:
+                    sql = str(statement)
+
+                result = await self.client.execute(sql)
+                return result
+
+            except Exception as e:
+                print(f"❌ Turso execute error: {e}")
+                raise
 
         async def commit(self):
-            # Turso HTTP API is auto-commit; nothing to do here.
+            # Turso auto-commits
             pass
 
         async def rollback(self):
-            # HTTP API doesn't support rollbacks.
+            # No rollback support
             pass
 
         async def close(self):
-            await self.client.close()
+            # Do NOT close global client
+            pass
 
         def add(self, obj):
-            # Not implemented – use execute() for inserts/updates.
-            pass
+            # Not supported (use raw SQL)
+            raise NotImplementedError("Use execute() for inserts")
 
     @asynccontextmanager
     async def get_db():
-        client = TursoClient(
-            url=settings.TURSO_HTTP_URL,
-            auth_token=settings.TURSO_AUTH_TOKEN
-        )
-        session = TursoAsyncSession(client)
+        session = TursoAsyncSession(turso_client)
         try:
             yield session
             await session.commit()
         except Exception:
             await session.rollback()
             raise
-        finally:
-            await session.close()
 
     async def create_tables():
-        # With Turso, tables are created automatically on first use.
         print("✅ Database ready (Turso)")
 
+
+# =========================================================
+# SQLITE (DEVELOPMENT)
+# =========================================================
 else:
-    # Local SQLite (development)
     engine = create_async_engine(
         settings.DATABASE_URL,
         echo=False,
         connect_args={"check_same_thread": False}
     )
-    AsyncSessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+    AsyncSessionLocal = async_sessionmaker(
+        engine,
+        class_=AsyncSession,
+        expire_on_commit=False
+    )
 
     async def get_db():
         async with AsyncSessionLocal() as session:
@@ -77,8 +94,6 @@ else:
             except Exception:
                 await session.rollback()
                 raise
-            finally:
-                await session.close()
 
     async def create_tables():
         async with engine.begin() as conn:
