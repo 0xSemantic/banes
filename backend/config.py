@@ -45,13 +45,20 @@ class Settings:
     
     if TURSO_URL and TURSO_AUTH_TOKEN:
         # Production: Use Turso
-        # Note: libsql driver is synchronous, we'll wrap it later
-        DATABASE_URL = f"sqlite+{TURSO_URL}?authToken={TURSO_AUTH_TOKEN}"
+        # Convert libsql:// URL to https:// for the HTTP API
+        if TURSO_URL.startswith("libsql://"):
+            TURSO_HTTP_URL = TURSO_URL.replace("libsql://", "https://")
+        else:
+            TURSO_HTTP_URL = TURSO_URL
         DATABASE_TYPE = "turso"
+        # Keep a fallback DATABASE_URL for compatibility (not used by turso-python)
+        DATABASE_URL = f"sqlite+{TURSO_URL}?authToken={TURSO_AUTH_TOKEN}"
     else:
         # Development: Use local SQLite file
-        DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./credex.db")
         DATABASE_TYPE = "sqlite"
+        DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./credex.db")
+        TURSO_HTTP_URL = None
+        TURSO_AUTH_TOKEN = None
         
     # =========================================================
     # SUPPORTED CURRENCIES
