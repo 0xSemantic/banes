@@ -10,9 +10,10 @@ from .config import settings
 if settings.DATABASE_TYPE == "turso":
     from turso_python import TursoClient
 
+    # ✅ FIXED: correct init (NO keyword args)
     turso_client = TursoClient(
-        url=settings.TURSO_HTTP_URL,
-        auth_token=settings.TURSO_AUTH_TOKEN
+        settings.TURSO_HTTP_URL,
+        settings.TURSO_AUTH_TOKEN
     )
 
     class TursoAsyncSession:
@@ -20,15 +21,20 @@ if settings.DATABASE_TYPE == "turso":
             self.client = client
 
         async def execute(self, statement, *args, **kwargs):
-            if hasattr(statement, "compile"):
-                compiled = statement.compile(
-                    compile_kwargs={"literal_binds": True}
-                )
-                sql = str(compiled)
-            else:
-                sql = str(statement)
+            try:
+                if hasattr(statement, "compile"):
+                    compiled = statement.compile(
+                        compile_kwargs={"literal_binds": True}
+                    )
+                    sql = str(compiled)
+                else:
+                    sql = str(statement)
 
-            return await self.client.execute(sql)
+                return await self.client.execute(sql)
+
+            except Exception as e:
+                print(f"❌ Turso execute error: {e}")
+                raise
 
         async def commit(self):
             pass
